@@ -1,6 +1,8 @@
 from enum import Enum
 
 from wand.image import Image
+from wand.color import Color
+from wand.drawing import Drawing
 
 class ImageSide(Enum):
     Top = 0
@@ -11,7 +13,7 @@ class ImageSide(Enum):
 class ImageStitcher:
    
     def __init__(self, base_image, sprite_coordinates):
-        self.image = Image(filename=base_image)
+        self.image = Image(filename=base_image, background=Color("transparent"))
         self.coords = sprite_coordinates
 
     def get_dimensions(self):
@@ -22,7 +24,20 @@ class ImageStitcher:
         self.width = img.width
         self.height = img.height
 
-    def draw_sprite(self, sprite):
+    def draw_sprite(self, sprite, rounded=True):
+        sprite.alpha_channel = True
+        if rounded:
+            with Image(width=sprite.width, height=sprite.height, 
+                       background=Color('transparent')) as mask:
+                with Drawing() as ctx:
+                    ctx.fill_color = Color("black")
+                    ctx.rectangle(left=0, top=0, 
+                                  width=mask.width, height=mask.height, radius=mask.width / 2)
+                    ctx(mask)
+                    sprite.composite_channel('all_channels', mask, 'screen')
+                    mask.negate()
+                    sprite.composite_channel('alpha', mask, 'copy_opacity')
+
         x, y = self.coords[0]
         del self.coords[0]
         new_image = self.image.clone() 

@@ -10,6 +10,9 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Inlin
 
 # Internal
 from settings import BOT_TOKEN
+from image import stitcher
+from wand.image import Image
+from io import BytesIO
 
 # Get a bot and an updater
 bot = telegram.Bot(token=BOT_TOKEN)
@@ -24,15 +27,25 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 '''
 def start(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text='It is working')
-
-def echo(bot, update):
-    bot.send_message(chat_id=update.message.chat_id, text=update.message.text)
-
-start_handler = CommandHandler("start", start)
-echo_handler = MessageHandler(Filters.text, echo)
-dispatcher.add_handler(start_handler)
-dispatcher.add_handler(echo_handler)
 '''
+def echo(bot, update):
+    prof_img = bot.get_user_profile_photos(update.message.from_user.id, limit=1).photos[0]
+    f = bot.get_file(prof_img[0])
+    downloaded = f.download()
+    s = stitcher.ImageStitcher('images/stocking-base.png', [(10, 10)])
+    s.draw_sprite(Image(filename=downloaded))
+    bio = BytesIO()
+    bio.name = "imagetest.png"
+    s.image.save(bio)
+    bio.seek(0)
+    bot.send_photo(update.message.chat_id, photo=bio)
+
+'''
+start_handler = CommandHandler("start", start)
+dispatcher.add_handler(start_handler)
+'''
+echo_handler = MessageHandler(Filters.group, echo)
+dispatcher.add_handler(echo_handler)
 
 def inline_caps(bot, update):
     query = update.inline_query.query
